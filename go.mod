@@ -1,3 +1,3 @@
-module github.com/Xhofe/gsync
+module github.com/xhofe/gsync
 
 go 1.20
