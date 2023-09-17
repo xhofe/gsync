@@ -1,6 +1,7 @@
 package gsync
 
 import (
+	"container/list"
 	"errors"
 	"sync"
 )
@@ -11,29 +12,29 @@ var (
 )
 
 type Queue[T any] struct {
-	queue []T
-	rw    sync.RWMutex
+	rw   sync.RWMutex
+	list list.List
 }
 
 func NewQueue[T any]() *Queue[T] {
-	return &Queue[T]{queue: make([]T, 0)}
+	return &Queue[T]{}
 }
 
 func (q *Queue[T]) Push(v T) {
 	q.rw.Lock()
 	defer q.rw.Unlock()
-	q.queue = append(q.queue, v)
+	q.list.PushBack(v)
 }
 
 func (q *Queue[T]) Pop() (T, error) {
 	q.rw.Lock()
 	defer q.rw.Unlock()
-	if len(q.queue) == 0 {
+	if q.list.Len() == 0 {
 		return GetZero[T](), ErrQueueEmpty
 	}
-	v := q.queue[0]
-	q.queue = q.queue[1:]
-	return v, nil
+	e := q.list.Front()
+	q.list.Remove(e)
+	return e.Value.(T), nil
 }
 
 func (q *Queue[T]) MustPop() T {
@@ -45,9 +46,7 @@ func (q *Queue[T]) MustPop() T {
 }
 
 func (q *Queue[T]) Len() int {
-	q.rw.RLock()
-	defer q.rw.RUnlock()
-	return len(q.queue)
+	return q.list.Len()
 }
 
 func (q *Queue[T]) IsEmpty() bool {
@@ -57,16 +56,17 @@ func (q *Queue[T]) IsEmpty() bool {
 func (q *Queue[T]) Clear() {
 	q.rw.Lock()
 	defer q.rw.Unlock()
-	q.queue = nil
+	q.list.Init()
 }
 
 func (q *Queue[T]) Peek() (T, error) {
 	q.rw.RLock()
 	defer q.rw.RUnlock()
-	if len(q.queue) == 0 {
+	if q.list.Len() == 0 {
 		return GetZero[T](), ErrQueueEmpty
 	}
-	return q.queue[0], nil
+	e := q.list.Front()
+	return e.Value.(T), nil
 }
 
 func (q *Queue[T]) MustPeek() T {
@@ -80,10 +80,16 @@ func (q *Queue[T]) MustPeek() T {
 func (q *Queue[T]) PeekN(n int) ([]T, error) {
 	q.rw.RLock()
 	defer q.rw.RUnlock()
-	if len(q.queue) < n {
+	if q.list.Len() < n {
 		return nil, ErrQueueLess
 	}
-	return q.queue[:n], nil
+	var v []T
+	var front = q.list.Front()
+	for i := 0; i < n; i++ {
+		v = append(v, front.Value.(T))
+		front = front.Next()
+	}
+	return v, nil
 }
 
 func (q *Queue[T]) MustPeekN(n int) []T {
@@ -97,11 +103,15 @@ func (q *Queue[T]) MustPeekN(n int) []T {
 func (q *Queue[T]) PopN(n int) ([]T, error) {
 	q.rw.Lock()
 	defer q.rw.Unlock()
-	if len(q.queue) < n {
+	if q.list.Len() < n {
 		return nil, ErrQueueLess
 	}
-	v := q.queue[:n]
-	q.queue = q.queue[n:]
+	var v []T
+	for i := 0; i < n; i++ {
+		front := q.list.Front()
+		v = append(v, front.Value.(T))
+		q.list.Remove(front)
+	}
 	return v, nil
 }
 
@@ -116,35 +126,35 @@ func (q *Queue[T]) MustPopN(n int) []T {
 func (q *Queue[T]) PopAll() []T {
 	q.rw.Lock()
 	defer q.rw.Unlock()
-	v := q.queue
-	q.queue = nil
+	var v []T
+	for q.list.Len() > 0 {
+		front := q.list.Front()
+		v = append(v, front.Value.(T))
+		q.list.Remove(front)
+	}
 	return v
 }
 
 func (q *Queue[T]) PopWhile(f func(T) bool) []T {
 	q.rw.Lock()
 	defer q.rw.Unlock()
-	var i int
-	for i = 0; i < len(q.queue); i++ {
-		if !f(q.queue[i]) {
-			break
-		}
+	var v []T
+	front := q.list.Front()
+	for front != nil && f(front.Value.(T)) {
+		v = append(v, front.Value.(T))
+		q.list.Remove(front)
 	}
-	v := q.queue[:i]
-	q.queue = q.queue[i:]
 	return v
 }
 
 func (q *Queue[T]) PopUntil(f func(T) bool) []T {
 	q.rw.Lock()
 	defer q.rw.Unlock()
-	var i int
-	for i = 0; i < len(q.queue); i++ {
-		if f(q.queue[i]) {
-			break
-		}
+	var v []T
+	front := q.list.Front()
+	for front != nil && !f(front.Value.(T)) {
+		v = append(v, front.Value.(T))
+		q.list.Remove(front)
 	}
-	v := q.queue[:i]
-	q.queue = q.queue[i:]
 	return v
 }
