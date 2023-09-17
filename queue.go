@@ -11,22 +11,22 @@ var (
 	ErrQueueLess  = errors.New("queue len less than n")
 )
 
-type Queue[T any] struct {
+type QueueOf[T any] struct {
 	rw   sync.RWMutex
 	list list.List
 }
 
-func NewQueue[T any]() *Queue[T] {
-	return &Queue[T]{}
+func NewQueue[T any]() *QueueOf[T] {
+	return &QueueOf[T]{}
 }
 
-func (q *Queue[T]) Push(v T) {
+func (q *QueueOf[T]) Push(v T) {
 	q.rw.Lock()
 	defer q.rw.Unlock()
 	q.list.PushBack(v)
 }
 
-func (q *Queue[T]) Pop() (T, error) {
+func (q *QueueOf[T]) Pop() (T, error) {
 	q.rw.Lock()
 	defer q.rw.Unlock()
 	if q.list.Len() == 0 {
@@ -37,7 +37,7 @@ func (q *Queue[T]) Pop() (T, error) {
 	return e.Value.(T), nil
 }
 
-func (q *Queue[T]) MustPop() T {
+func (q *QueueOf[T]) MustPop() T {
 	v, err := q.Pop()
 	if err != nil {
 		panic(err)
@@ -45,21 +45,21 @@ func (q *Queue[T]) MustPop() T {
 	return v
 }
 
-func (q *Queue[T]) Len() int {
+func (q *QueueOf[T]) Len() int {
 	return q.list.Len()
 }
 
-func (q *Queue[T]) IsEmpty() bool {
+func (q *QueueOf[T]) IsEmpty() bool {
 	return q.Len() == 0
 }
 
-func (q *Queue[T]) Clear() {
+func (q *QueueOf[T]) Clear() {
 	q.rw.Lock()
 	defer q.rw.Unlock()
 	q.list.Init()
 }
 
-func (q *Queue[T]) Peek() (T, error) {
+func (q *QueueOf[T]) Peek() (T, error) {
 	q.rw.RLock()
 	defer q.rw.RUnlock()
 	if q.list.Len() == 0 {
@@ -69,7 +69,7 @@ func (q *Queue[T]) Peek() (T, error) {
 	return e.Value.(T), nil
 }
 
-func (q *Queue[T]) MustPeek() T {
+func (q *QueueOf[T]) MustPeek() T {
 	v, err := q.Peek()
 	if err != nil {
 		panic(err)
@@ -77,7 +77,7 @@ func (q *Queue[T]) MustPeek() T {
 	return v
 }
 
-func (q *Queue[T]) PeekN(n int) ([]T, error) {
+func (q *QueueOf[T]) PeekN(n int) ([]T, error) {
 	q.rw.RLock()
 	defer q.rw.RUnlock()
 	if q.list.Len() < n {
@@ -92,7 +92,7 @@ func (q *Queue[T]) PeekN(n int) ([]T, error) {
 	return v, nil
 }
 
-func (q *Queue[T]) MustPeekN(n int) []T {
+func (q *QueueOf[T]) MustPeekN(n int) []T {
 	v, err := q.PeekN(n)
 	if err != nil {
 		panic(err)
@@ -100,7 +100,7 @@ func (q *Queue[T]) MustPeekN(n int) []T {
 	return v
 }
 
-func (q *Queue[T]) PopN(n int) ([]T, error) {
+func (q *QueueOf[T]) PopN(n int) ([]T, error) {
 	q.rw.Lock()
 	defer q.rw.Unlock()
 	if q.list.Len() < n {
@@ -115,7 +115,7 @@ func (q *Queue[T]) PopN(n int) ([]T, error) {
 	return v, nil
 }
 
-func (q *Queue[T]) MustPopN(n int) []T {
+func (q *QueueOf[T]) MustPopN(n int) []T {
 	v, err := q.PopN(n)
 	if err != nil {
 		panic(err)
@@ -123,7 +123,7 @@ func (q *Queue[T]) MustPopN(n int) []T {
 	return v
 }
 
-func (q *Queue[T]) PopAll() []T {
+func (q *QueueOf[T]) PopAll() []T {
 	q.rw.Lock()
 	defer q.rw.Unlock()
 	var v []T
@@ -135,7 +135,7 @@ func (q *Queue[T]) PopAll() []T {
 	return v
 }
 
-func (q *Queue[T]) PopWhile(f func(T) bool) []T {
+func (q *QueueOf[T]) PopWhile(f func(T) bool) []T {
 	q.rw.Lock()
 	defer q.rw.Unlock()
 	var v []T
@@ -147,7 +147,7 @@ func (q *Queue[T]) PopWhile(f func(T) bool) []T {
 	return v
 }
 
-func (q *Queue[T]) PopUntil(f func(T) bool) []T {
+func (q *QueueOf[T]) PopUntil(f func(T) bool) []T {
 	q.rw.Lock()
 	defer q.rw.Unlock()
 	var v []T
