@@ -13,7 +13,7 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/Xhofe/gsync/cmp"
+	"github.com/xhofe/gsync/cmp"
 )
 
 type mapOp string

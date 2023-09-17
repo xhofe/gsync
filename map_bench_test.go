@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/Xhofe/gsync/cmp"
+	"github.com/xhofe/gsync/cmp"
 )
 
 type bench struct {
